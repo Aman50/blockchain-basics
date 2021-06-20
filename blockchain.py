@@ -4,17 +4,14 @@
 import datetime
 import hashlib
 import json
-import flask
-import Flask, jsonify
-
+from flask import Flask, jsonify
 
 # Creating the BlockChain - Basically a class
 class Blockchain:
 
-    def __init__():
+    def __init__(self):
         self.chain = []
-        self.add_block(proof=1, prev_hash='0') // Genesis
-        block
+        self.add_block(proof=1, prev_hash='0') # Genesis Block
 
     # Add block is called after proof of work, block is mined.
     def add_block_to_chain(self, proof, prev_hash):
@@ -48,19 +45,19 @@ class Blockchain:
 
     def check_valid_chain(self, chain):
         prev_block = chain[0]
-        is_valid = true
+        is_valid = True
         block_index = 1
         while block_index < len(chain):
             current_block = chain[block_index]
             prev_block_hash = self.get_hash_of_block(prev_block)
             if prev_block_hash != current_block['prev_hash']:
-                return false
+                return False
 
             prev_proof = prev_block['proof']
-            current_proof = block['proof']
+            current_proof = current_block['proof']
             hashed_proof = hashlib.sha256(str(current_proof ** 3 - prev_proof ** 2).encode()).hexdigest()
             if (hashed_proof[:4] != '0000'):
-                return false
-            prev_block = block
+                return False
+            prev_block = current_block
             block_index += 1
-        return true
+        return True
