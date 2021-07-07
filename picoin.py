@@ -1,4 +1,4 @@
-# Creating a BlockChain
+# Creating a simple Cryptocurrency = PiCoin
 
 # Importing the required libraries
 import datetime
@@ -10,11 +10,16 @@ from uuid import uuid4
 import requests
 
 # Step 1 - Creating the BlockChain - Basically a class
+# For Cryptocurrency, we need to include 2 main pillars into our Blockchain class
+# 1. Concept of transactions - Cryptocurrencies are basically based on movement of some currency
+# 2. Consensus - To ensure each of the nodes in out network are in the same page i.e. have same main chain.
 class Blockchain:
     """Class defining our blockchain"""
     def __init__(self):
         self.chain = []
-        self.add_block_to_chain(proof=1, prev_hash='0') # Genesis Block
+        self.transactions = []
+        self.add_block_to_chain(proof=1, prev_hash='0')  # Genesis Block
+        self.nodes = set()
 
     # Add block is called after proof of work, block is mined.
     def add_block_to_chain(self, proof, prev_hash):
@@ -22,6 +27,7 @@ class Blockchain:
             'proof': proof,
             'prev_hash': prev_hash,
             'index': len(self.chain) + 1,
+            'transactions': self.transactions,
             'timestamp': str(datetime.datetime.now())}
 
         self.chain.append(block)
@@ -63,6 +69,40 @@ class Blockchain:
             prev_block = current_block
             block_index += 1
         return True
+
+    def insert_transaction(self, sender, receiver, amount):
+        self.transactions.append({
+            'sender': sender,
+            'receiver': receiver,
+            'amount': amount
+        })
+        prev_block = self.get_last_block()
+        return prev_block['index'] + 1
+
+    def add_node(self, address):
+        parsed_url = urlparse(address)
+        self.nodes.add(parsed_url.netloc)
+
+    def replace_chain(self):
+        longest_chain = None
+        longest_chain_length = len(self.chain)
+        for node in self.nodes:
+            response = requests.get(f'http://{node}/get_chain')
+            if response.status_code == 200:
+                chain = response.json()['chain']
+                length_chain = response.json()['Number of blocks']
+                if self.check_if_valid(chain) and length_chain > longest_chain_length:
+                    longest_chain = chain
+                    longest_chain_length = length_chain
+            if longest_chain:
+                self.chain = longest_chain
+                return True
+            return False
+
+
+
+
+
 
 # Step - 2 Mining our Block and creating the flask app
 
