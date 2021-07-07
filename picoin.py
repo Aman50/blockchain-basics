@@ -12,7 +12,7 @@ import requests
 # Step 1 - Creating the BlockChain - Basically a class
 # For Cryptocurrency, we need to include 2 main pillars into our Blockchain class
 # 1. Concept of transactions - Cryptocurrencies are basically based on movement of some currency
-# 2. Consensus - To ensure each of the nodes in out network are in the same page i.e. have same main chain.
+# 2. Consensus - To ensure each of the nodes in our network are on the same page i.e. have same main chain.
 class Blockchain:
     """Class defining our blockchain"""
     def __init__(self):
@@ -99,11 +99,6 @@ class Blockchain:
                 return True
             return False
 
-
-
-
-
-
 # Step - 2 Mining our Block and creating the flask app
 
 # Creating the Flask app
@@ -113,6 +108,9 @@ app.config['JSONIFY_PRETTYPRINT_REGULAR'] = False
 # Creating an instance of the Blockchain
 blockchain = Blockchain()
 
+# Node Address
+node_address = str(uuid4()).replace('-', '')
+
 # Mining a new block and adding it to our blockchain
 @app.route('/mine_block', methods=['GET'])
 def mine_a_block():
@@ -120,6 +118,7 @@ def mine_a_block():
     previous_proof = previous_block['proof']
     current_proof = blockchain.proof_of_work(previous_proof)
     hash_of_previous_block = blockchain.get_hash_of_block(previous_block)
+    blockchain.insert_transaction('Coinbase', node_address, 10)
     newly_added_block = blockchain.add_block_to_chain(current_proof, hash_of_previous_block)
     response = {'message': 'Congratulations, you\'ve successfully mined a block!', **newly_added_block}
     return jsonify(response), 200
@@ -139,7 +138,54 @@ def check_if_valid():
     response = {'Is Blockchain Valid' : blockchain.check_valid_chain(blockchain.chain)}
     return jsonify(response), 200
 
+# Endpoint to add a transaction to our list of transactions
+@app.route('/add_transaction', methods=['POST'])
+def add_transaction():
+    data = requests.get_json()
+    valid = True
+    keys = ['sender', 'receiver', 'amount']
+    # Checking if the json if in correct format
+    for key in data:
+        if key not in keys:
+            valid = False
+            break
+    if not valid:
+        response = {'message': 'Please check the transaction again!'}
+        return jsonify(response), 400
+    else:
+        index = blockchain.insert_transaction(**data)
+        response = {'message': f'Your transaction would be added to block {index}'}
+        return jsonify(response), 201
 
-# Step - 3 Decentralising our blockchain
+
+# Step - 3 Decentralizing our blockchain
+
+# Adding nodes to our network
+@app.route('/add_nodes', methods=['POST'])
+def add_node_to_network():
+    json = requests.get_json()
+    if 'nodes' in json and len(json['nodes'] > 0):
+        nodes = json['nodes']
+        for node in nodes:
+            blockchain.add_node(node)
+        response = {'message': 'The nodes have been added to the Blockchain. Currently, connected nodes are: ',
+                    'nodes': blockchain.nodes}
+        return jsonify(response), 201
+    else:
+        response = {'message': 'No nodes specified'}
+        return jsonify(response), 400
+
+# Replacing the chain with the longest chain in the network
+@app.route('/replace_chain', methods=['GET'])
+def replace_chain():
+    is_replace_required = blockchain.replace_chain()
+    if is_replace_required:
+        response = {'message': 'The blockchain was replaced by the longest chain in the network',
+                    'new_chain': blockchain.chain}
+    else:
+        response = {'message': 'The chain is the updated chain',
+                    'actual_chain': blockchain.chain}
+    return jsonify(response), 200
+
 # Running the app
 app.run(port=9051, debug=True)
