@@ -30,6 +30,7 @@ class Blockchain:
             'transactions': self.transactions,
             'timestamp': str(datetime.datetime.now())}
 
+        self.transactions = []
         self.chain.append(block)
         return block
 
@@ -91,13 +92,13 @@ class Blockchain:
             if response.status_code == 200:
                 chain = response.json()['chain']
                 length_chain = response.json()['Number of blocks']
-                if self.check_if_valid(chain) and length_chain > longest_chain_length:
+                if self.check_valid_chain(chain) and length_chain > longest_chain_length:
                     longest_chain = chain
                     longest_chain_length = length_chain
-            if longest_chain:
-                self.chain = longest_chain
-                return True
-            return False
+        if longest_chain:
+            self.chain = longest_chain
+            return True
+        return False
 
 # Step - 2 Mining our Block and creating the flask app
 
@@ -141,7 +142,7 @@ def check_if_valid():
 # Endpoint to add a transaction to our list of transactions
 @app.route('/add_transaction', methods=['POST'])
 def add_transaction():
-    data = requests.get_json()
+    data = request.get_json()
     valid = True
     keys = ['sender', 'receiver', 'amount']
     # Checking if the json if in correct format
@@ -163,13 +164,13 @@ def add_transaction():
 # Adding nodes to our network
 @app.route('/add_nodes', methods=['POST'])
 def add_node_to_network():
-    json = requests.get_json()
-    if 'nodes' in json and len(json['nodes'] > 0):
+    json = request.get_json()
+    if 'nodes' in json and len(json['nodes']) > 0:
         nodes = json['nodes']
         for node in nodes:
             blockchain.add_node(node)
         response = {'message': 'The nodes have been added to the Blockchain. Currently, connected nodes are: ',
-                    'nodes': blockchain.nodes}
+                    'nodes': list(blockchain.nodes)}
         return jsonify(response), 201
     else:
         response = {'message': 'No nodes specified'}
@@ -188,4 +189,4 @@ def replace_chain():
     return jsonify(response), 200
 
 # Running the app
-app.run(port=9051, debug=True)
+app.run(port=5002, debug=True)
